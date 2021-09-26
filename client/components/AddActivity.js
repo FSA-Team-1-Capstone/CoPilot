@@ -6,7 +6,8 @@ import {addTripEvent,removeTripEvent} from "../store/trips"
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import dateFormat from "dateformat";
-import RatingStar from "./RatingStar"
+import StarRatings from "react-star-ratings"
+import AutoComInput from "./GoogleAutoComplete"
 
 let categoryList =[
 {key:"active",value:"Active Life"},
@@ -24,6 +25,7 @@ const AddActivity= (props)=> {
 
    const {trip,tripId,tripevents} = useSelector((state)=>({trip:state.trips.trip,tripId:state.trips.trip.id,tripevents:state.trips.trip.tripevents}))
    const [activityList,setActivityList] = useState([]);
+   const [activityEvents,setActivityEvents] = useState([]);
    const [searchValue,setSearchValue] = useState("");
    const [category,setCategory] = useState("");
    const [description,setDescription] = useState("");
@@ -39,6 +41,23 @@ const AddActivity= (props)=> {
     const {data} =  await axios.get("/api/yelp/activity",{params:{term:searchValue,category:category,location}});
     setActivityList(data);
 }
+
+  function availableDates() {
+    let activeDays = [];
+    let amountActDays =
+      new Date(trip.endDate).getDate() - new Date(trip.startDate).getDate();
+    for (let i = 0; i <= amountActDays; i++) {
+      activeDays.push(
+        new Date(
+          new Date(trip.startDate).setDate(
+            new Date(trip.startDate).getDate() + i
+          )
+        )
+      );
+    }
+    return activeDays;
+  }
+
 useEffect(()=>{
   const func = async()=> {
     const { data } = await axios.get("/api/yelp/activity", {
@@ -72,8 +91,14 @@ useEffect(()=>{
     
       },[sortValue])
 
+      useEffect(() => {
+        let list =
+          tripevents && tripevents.filter((event) => event.purpose === "ACTIVITY");
+          setActivityEvents(list);
+      }, [tripevents]);
+
 return (
-    <div style={{padding:"20px"}}>
+    <div style={{padding:"100px"}}>
       <div className="d-lg-flex flex-column align-content-center flex-wrap mr-md-6">
         <table className="table table-hover shadow p-3 mb-5 bg-white rounded">
         <thead>
@@ -86,8 +111,7 @@ return (
         </tr>
         </thead>
         <tbody>
-{tripevents&&tripevents.map(event=>
-event.purpose==="OTHER"?
+{activityEvents&&activityEvents.map(event=>
   <tr key = {event.id}>
     <td scope="row">{dateFormat(event.startDate,"mm/dd/yyyy h:MM:ss TT")}</td>
     <td>{event.placeName}</td> 
@@ -95,19 +119,9 @@ event.purpose==="OTHER"?
     <td>{event.location}</td> 
     <td><button type="button" className="btn btn-outline-danger" onClick={()=>{
 dispatch(removeTripEvent(tripId,event.id))
-}}><i class="far fa-trash-alt"></i></button></td>
+}}><i className="far fa-trash-alt"></i></button></td>
   </tr>
-:null
 )}</tbody></table>
-
-
-
-
-
-
-
-
-
 
         <form className ="flexBox" onSubmit={handleSubmit}>
         <div className="input-group">
@@ -116,7 +130,7 @@ dispatch(removeTripEvent(tripId,event.id))
             <option >{`<---Select a Category--->`}</option>
             {categoryList.map((cate,ind)=><option key ={ind} value={cate.key} >{cate.value}</option>)}
           </select>
-        <input value={location} onChange={(e)=>{setLocation(e.target.value)}} aria-label="location" className="form-control" />
+        <AutoComInput value={location} onChange={(e)=>{setLocation(e.target.value)}} aria-label="location" className="form-control" />
         <input autoFocus placeholder="search for activity" value={searchValue} onChange={(e)=>{setSearchValue(e.target.value)}} autoFocus type="text" aria-label="activity" className="form-control" />
           
           <button type="submit" className="btn btn-primary input-group-text">search</button>
@@ -130,34 +144,47 @@ dispatch(removeTripEvent(tripId,event.id))
 <Link className="btn btn-primary mr-md-3"to="/calendar">Once Activity is added, click here to go the calendar</Link>
 </div>     
        
-</div>      
+</div>  
+
+<br />
         <div className="flexBox">
         {activityList.map(activity=>
-        <ul className="shadow-lg p-3 mb-5 mr-md-3 d-flex flex-column bg-white rounded" key ={activity.id} style={{ padding: "10%", width:"30%",listStyleType: "none" ,textAlign:"center"}}>
+        <ul className="shadow-lg mx-auto p-3 d-flex flex-column align-content-center flex-wrap bg-white rounded" key ={activity.id} style={{ padding: "10%", width:"30%",listStyleType: "none" ,textAlign:"center"}}>
         <a href={activity.url} target="_blank"><img className="img-thumbnail"
                 style={{ width: "300px", height: "300px" }} src={activity.image_url}></img></a>
         <li >{activity.name}</li>
-        <li> <RatingStar rating={activity.rating} /></li>
+        <li> 
+          <StarRatings
+          rating={activity.rating}
+          starRatedColor = 'gold'
+          starDimension = '20px'
+          starSpacing = '3px'
+          />
+        </li>
         <li >{activity.categories[0].title}</li>
         <li><input placeholder="Add event description" value={description} onChange={(e)=>{setDescription(e.target.value)}}></input></li>
 
       <DatePicker
-      placeholderText='Reserve DateTime'
-      timeInputLabel="Pick a Time:"
-      dateFormat="MM/dd/yyyy h:mm aa"
-      showTimeInput
+        placeholderText='Select a date'
+        timeInputLabel="Pick a time:"
+        dateFormat="MM/dd/yyyy h:mm aa"
+        includeDates={availableDates()}
+        showTimeInput
         selected={startDate}
-        onChange={(date) => setStartDate(date)}
-        selectsStart
-        startDate={startDate}
-        withPortal/>
+        onChange={(date) => 
+          setStartDate(date)
+        }
+        withPortal
+      />
         <button type="button" className="btn btn-outline-secondary " onClick={()=>{
-
-            if(startDate) {
+            if (description === '') {
+              alert("Please add a description")
+            } else if(startDate) {
 
             dispatch(addTripEvent({
                 purpose:"ACTIVITY",
                 startDate,
+                // endDate,
                 tripId,
                 description,
                 placeName:activity.name,

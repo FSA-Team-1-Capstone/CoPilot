@@ -2,11 +2,14 @@ import React, {Component} from 'react'
 import { connect } from 'react-redux';
 import { Link, useHistory } from 'react-router-dom';
 import  { addUpdateTrip }  from '../store/trips'
-import TripMap from './TripMap'
+// import TripMap from './TripMap'
 import PlacesAutocomplete, {
     geocodeByAddress,
     getLatLng,
   } from 'react-places-autocomplete';
+  import DatePicker from 'react-datepicker';
+  import "react-datepicker/dist/react-datepicker.css";
+  import moment from 'moment'
 
 
 const initialState = {
@@ -21,12 +24,17 @@ class CreateTrip extends Component{
     super(props)
     this.state = {
         initialState,
-        address: ''
+        address: '',
+        startDate: new Date(),
+        endDate: new Date()
     }
     this.handleSubmit = this.handleSubmit.bind(this)
     this.handleChange = this.handleChange.bind(this)
     this.handleChanges = this.handleChanges.bind(this)
     this.handleSelect = this.handleSelect.bind(this)
+    this.handleDate = this.handleDate.bind(this);
+    this.handleEndDate = this.handleEndDate.bind(this);
+
 
   }
 
@@ -36,9 +44,9 @@ class CreateTrip extends Component{
     const {state} = this
     try {
         await this.props.addUpdateTrip({
-             destination: state.address,
-            startDate: state.startDate,
-            endDate: state.endDate,
+            destination: state.address,
+            startDate: moment(state.startDate),
+            endDate: moment(state.endDate),
             purpose: state.purpose,
             name: state.name,
             ownerId:this.props.auth.id,
@@ -46,8 +54,6 @@ class CreateTrip extends Component{
         console.log(this.props)
 
     this.props.history.push('/tripattendees')
-
-    // this.setState(initialState)
 
     } catch (error) {
         console.log(error)
@@ -62,6 +68,26 @@ handleChange = (ev) => {
 handleChanges = address => {
     this.setState({ address });
   };
+
+handleDate = start => {
+    this.setState({
+        startDate: start
+      })
+
+    }
+
+      handleEndDate = end => {
+        this.setState({
+            startDate: end
+          })
+
+        }    
+
+onFormSubmit(e) {
+    e.preventDefault();
+    console.log(this.state.startDate)
+    console.log(this.state.endDate)
+  }
  
   handleSelect = address => {
       console.log(address)
@@ -82,10 +108,10 @@ render() {
     <div id="content-wrapper">
     <div id="fb-root"></div>
         <div id="profilecontainer">
-        <div className="container" id="profileleft">
-            <h1 className="profilehdr">Add Trip</h1>
+        <div className="containerx" id="profileleft">
+            <h1 className="profilehdr">Create Trip</h1>
             </div>
-            <div className="container" id="profileright">
+            <div className="containerx" id="profileright">
             <form id="profileform" onSubmit={handleSubmit}>
             <div className='formfield'>
                 
@@ -94,16 +120,16 @@ render() {
                 <label>Name:</label>
             </div>
             <div className='formfield'>
-                
                     {/* <input type="text" name='destination' value= {destination} onChange={ handleChange }
                     required={true} /> */}
                     <PlacesAutocomplete
+        
         value={this.state.address}
         onChange={handleChanges}
         onSelect={handleSelect}
       >
         {({ getInputProps, suggestions, getSuggestionItemProps, loading }) => (
-          <div>
+          <div className='formfield'>
             <input 
               {...getInputProps({
                 placeholder: 'Search Places ...',
@@ -111,8 +137,11 @@ render() {
               })}
             //   name='destination'
             //   onChange={handleChanges}
+               className='formfield'
               value= { this.state.address }
             />
+                            <label>Destination:</label>
+
             <div className="autocomplete-dropdown-container">
               {loading && <div>Loading...</div>}
               {suggestions.map(suggestion => {
@@ -140,18 +169,27 @@ render() {
       </PlacesAutocomplete>
                     
                 </div>
-                <div className='formfield'>
-                    
+                <div className='formfield'> 
                     <input type="date" name='startDate' value= {startDate} onChange={ handleChange }
                     required={true} />
+                    {/* <DatePicker
+              selected={ this.state.startDate }
+              onChange={ this.handleDate }
+              name="startDate"
+              dateFormat="MM/dd/yyyy"
+          /> */}
                     <label>Start Date:</label>
                 </div>
-
                 <div className='formfield'>
-                   
                     <input type="date" name='endDate' value= {endDate} onChange={ handleChange }
                     required={true}/>
                      <label>End Date:</label>
+                     {/* <DatePicker
+              selected={ this.state.endDate }
+              onChange={ this.handleEndDate }
+              name="endDate"
+              dateFormat="MM/dd/yyyy"
+          /> */}
                 </div>
                 <div className='formfield'>
                     <select name='purpose' value= {purpose} onChange={ handleChange }>

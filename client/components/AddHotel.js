@@ -5,10 +5,12 @@ import { Link } from "react-router-dom";
 import { addTripEvent, removeTripEvent } from "../store/trips";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import GoogleMap from "./googleMap";
 import dateFormat from "dateformat";
 import moment from "moment";
-import RatingStar from "./RatingStar"
+
+import AutoComInput from "./GoogleAutoComplete"
+import StarRatings from "react-star-ratings"
+
 
 const AddHotel = (props) => {
   const { trip, tripId, tripevents } = useSelector((state) => ({
@@ -74,7 +76,7 @@ useEffect(()=>{
       list = hotelList.sort(function(a,b) {
        return b.rating-a.rating;
       })
-      console.log(list)
+
       setHotelList(list);
     }else if(sortValue==="price") {
       list = hotelList.sort(function(a,b) {
@@ -85,10 +87,26 @@ useEffect(()=>{
 
   },[sortValue])
 
+  function availableDates() {
+    let activeDays = [];
+    let amountActDays =
+      new Date(trip.endDate).getDate() - new Date(trip.startDate).getDate();
+    for (let i = 0; i <= amountActDays; i++) {
+      activeDays.push(
+        new Date(
+          new Date(trip.startDate).setDate(
+            new Date(trip.startDate).getDate() + i
+          )
+        )
+      );
+    }
+    return activeDays;
+  }
+
   return (
-    <div style={{ padding: "20px" }}>
+    <div style={{ padding: "100px" }}>
       <div className="d-lg-flex flex-column align-content-center flex-wrap mr-md-6">
-      <table className="table table-hover shadow p-3 mb-5 bg-white rounded">
+      <table className="table table-hover shadow p-3 mb-5 bg-white rounded ">
       <thead>
           <tr>
           <th scope="col">CheckIn Date Time</th>
@@ -100,9 +118,8 @@ useEffect(()=>{
           </tr>
           </thead>
           <tbody>
-          {tripevents &&
-            tripevents.map((event) =>
-              event.purpose === "SLEEP" ? (
+          {hotelEvents &&
+            hotelEvents.map((event) =>
                 <tr key={event.id}>
                   <td scope="row">{dateFormat(event.startDate,"mm/dd/yyyy h:MM:ss TT")}</td>
                   <td>{dateFormat(event.endDate,"mm/dd/yyyy h:MM:ss TT")}</td>
@@ -113,7 +130,7 @@ useEffect(()=>{
                   <td>{event.location}</td>
                   <td>
                     <button
-                      type="button" className="btn btn-outline-primary"
+                      type="button" className="btn btn-outline-danger"
                       onClick={() => {
                         dispatch(removeTripEvent(tripId, event.id));
                       }} >
@@ -121,7 +138,6 @@ useEffect(()=>{
                     </button>
                   </td>
                 </tr>
-              ) : null
             )}
         </tbody>
       </table>
@@ -129,18 +145,16 @@ useEffect(()=>{
 <form onSubmit={handleSubmit}>
   <div className="input-group">
   <span className="input-group-text mr-md-3">You can change a destination or search for a hotel</span>
-  <input value={location}
+  <AutoComInput value={location}
         onChange={(e) => {
           setLocation(e.target.value);
         }} type="text" aria-label="location" className="form-control" />
 
-  <input  value={searchValue}
+  <input value={searchValue}
   placeholder="search for hotel"
           onChange={(e) => {
             setSearchValue(e.target.value);
           }} autoFocus type="text" aria-label="hotel" className="form-control" />
-
-
 
       <button type="submit" className="btn btn-primary input-group-text">Search</button>
   <button type="button" className="btn btn-primary input-group-text mr-md-3"
@@ -162,18 +176,18 @@ useEffect(()=>{
 </form>
 
 <br />
-<div>
+    <div>
       <Link to={`/restaurant`} className="btn btn-primary">
         Once hotel is added, go to restaurant
       </Link>
-      </div>
+    </div>
 </div> 
+<br />
+
       <div className="d-lg-flex flex-row align-content-around flex-wrap mr-md-6">  
-
-
         {hotelList.map((hotel) => (
           
-          <ul className="shadow-lg p-3 mb-5 mr-md-3 d-flex flex-column align-content-center flex-wrap bg-white rounded"
+          <ul className="shadow-lg mx-auto p-3 d-flex flex-column align-content-center flex-wrap bg-white rounded"
             key={hotel.id}
             style={{ padding: "10%", width:"30%",listStyleType: "none" ,textAlign:"center"}}
           >
@@ -185,7 +199,12 @@ useEffect(()=>{
               ></img>
             </a>
             <li>{hotel.name}</li>
-            <li> <RatingStar rating={hotel.rating} /></li>
+            <li> <StarRatings
+                  rating={hotel.rating}
+                  starRatedColor = 'gold'
+                  starDimension = '20px'
+                  starSpacing = '3px'
+                  /></li>
             <li>{hotel.price}</li>
             <li>
               <input
@@ -201,6 +220,7 @@ useEffect(()=>{
                 placeholderText="CheckIn DateTime"
                 timeInputLabel="Pick a Time:"
                 dateFormat="MM/dd/yyyy h:mm aa"
+                includeDates={availableDates()}
                 showTimeInput
                 selected={startDate}
                 onChange={(date) => setStartDate(date)}
@@ -208,17 +228,19 @@ useEffect(()=>{
                 startDate={startDate}
                 endDate={endDate}
                 withPortal
-                dayClassName={(date) => {
-                  return date >= new Date(trip.startDate) &&
-                    date <= new Date(trip.endDate)
-                    ? "highlighted"
-                    : undefined;
-                }}
+                // Green background for dates appears with no perpose (Konstantin)
+                // dayClassName={(date) => {
+                //   return date >= new Date(trip.startDate) &&
+                //     date <= new Date(trip.endDate)
+                //     ? "highlighted"
+                //     : undefined;
+                // }}
               />
               <DatePicker
                 placeholderText="CheckOut DateTime"
                 timeInputLabel="Pick a Time:"
                 dateFormat="MM/dd/yyyy h:mm aa"
+                includeDates={availableDates()}
                 showTimeInput
                 selected={endDate}
                 onChange={(date) => setEndDate(date)}
@@ -227,19 +249,22 @@ useEffect(()=>{
                 endDate={endDate}
                 minDate={startDate}
                 withPortal
-                dayClassName={(date) => {
-                  return date >= new Date(trip.startDate) &&
-                    date <= new Date(trip.endDate)
-                    ? "highlighted"
-                    : undefined;
-                }}
+                // Green background for dates appears with no perpose (Konstantin)
+                // dayClassName={(date) => {
+                //   return date >= new Date(trip.startDate) &&
+                //     date <= new Date(trip.endDate)
+                //     ? "highlighted"
+                //     : undefined;
+                // }}
               />
               {/* <div className="className">CheckOut Date is missing</div> */}
             </>
 
             <button type="button" className="btn btn-outline-secondary "
               onClick={() => {
-                if (startDate && endDate &&(startDate<endDate)) {
+                if (description === '') {
+                  alert("Please add a description")
+                } else if (startDate && endDate &&(startDate<endDate)) {
                   dispatch(
                     addTripEvent({
                       purpose: "SLEEP",
@@ -269,8 +294,6 @@ useEffect(()=>{
           </ul>
         ))}{" "}
       </div>
-      <br />
-      {/* <GoogleMap events={hotelEvents} /> */}
     </div>
   );
 };
